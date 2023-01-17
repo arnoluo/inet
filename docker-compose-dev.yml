@@ -9,6 +9,7 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
       - --metrics.prometheus=true
       - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
       - --metrics.prometheus.addEntryPointsLabels=true
@@ -25,8 +26,14 @@ services:
       - --accesslog.filters.statuscodes=200,300-302
       - --accesslog.filters.retryattempts
       - --accesslog.filters.minduration=100ms
+      - --certificatesresolvers.tlsresolver.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesresolvers.tlsresolver.acme.storage=acme.json
+      # for staging, comment this line in prod
+      - --certificatesresolvers.tlsresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.tlsresolver.acme.tlschallenge=true
     ports:
       - ${TRAEFIK_HOST_LISTEN}:80
+      - 443:443
       - 8080:8080
     networks:
       - inet-chan-traefik
@@ -36,6 +43,8 @@ services:
         target: /var/run/docker.sock
         read_only: true
       - ./log/traefik:/var/log/traefik
+      - ./storage/acme:/etc/traefik/acme
+      - ./storage/acme.json:/acme.json
     mem_limit: ${SVC_TRAEFIK_MEMORY_LIMIT}
 
   npa:
@@ -51,6 +60,9 @@ services:
       - traefik.http.routers.root.entrypoints=web
       - traefik.http.routers.root.service=root-svc
       - traefik.http.services.root-svc.loadbalancer.server.port=${TRAEFIK_HOST_PORT}
+      ## tls enable
+      - traefik.http.routers.root.tls=true
+      - traefik.http.routers.root.tls.certresolver=tlsresolver
       # # 以下为使用子域名配置 subdomain test.inet
       # - traefik.http.routers.${TRAEFIK_SUBDOMAIN_TEST_NAME}.rule=Host(`${TRAEFIK_SUBDOMAIN_TEST_NAME}.${TRAEFIK_HOST_NAME}`)
       # - traefik.http.routers.${TRAEFIK_SUBDOMAIN_TEST_NAME}.entrypoints=web
