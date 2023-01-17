@@ -1,0 +1,58 @@
+groups:
+
+  - name: traefik-recrd
+    rules:
+    - record: job:http_inprogress_requests:sum
+      expr: sum by (job) (http_inprogress_requests)
+
+    - record: instance_path:requests:rate5m
+      expr: rate(requests_total{job="traefik"}[5m])
+
+    - record: path:requests:rate5m
+      expr: sum without (instance)(instance_path:requests:rate5m{job="traefik"})
+
+    - record: instance_path:request_failures:rate5m
+      expr: rate(request_failures_total{job="traefik"}[5m])
+
+    - record: instance_path:request_failures_per_requests:ratio_rate5m
+      expr: |2
+          instance_path:request_failures:rate5m{job="traefik"}
+        /
+          instance_path:requests:rate5m{job="traefik"}
+
+    # Aggregate up numerator and denominator, then divide to get path-level ratio.
+    - record: path:request_failures_per_requests:ratio_rate5m
+      expr: |2
+          sum without (instance)(instance_path:request_failures:rate5m{job="traefik"})
+        /
+          sum without (instance)(instance_path:requests:rate5m{job="traefik"})
+
+    # No labels left from instrumentation or distinguishing instances,
+    # so we use 'job' as the level.
+    - record: job:request_failures_per_requests:ratio_rate5m
+      expr: |2
+          sum without (instance, path)(instance_path:request_failures:rate5m{job="traefik"})
+        /
+          sum without (instance, path)(instance_path:requests:rate5m{job="traefik"})
+
+    - record: instance_path:request_latency_seconds_count:rate5m
+      expr: rate(request_latency_seconds_count{job="traefik"}[5m])
+
+    - record: instance_path:request_latency_seconds_sum:rate5m
+      expr: rate(request_latency_seconds_sum{job="traefik"}[5m])
+
+    - record: instance_path:request_latency_seconds:mean5m
+      expr: |2
+          instance_path:request_latency_seconds_sum:rate5m{job="traefik"}
+        /
+          instance_path:request_latency_seconds_count:rate5m{job="traefik"}
+
+    # Aggregate up numerator and denominator, then divide.
+    - record: path:request_latency_seconds:mean5m
+      expr: |2
+          sum without (instance)(instance_path:request_latency_seconds_sum:rate5m{job="traefik"})
+        /
+          sum without (instance)(instance_path:request_latency_seconds_count:rate5m{job="traefik"})
+
+    - record: job:request_latency_seconds_count:avg_rate5m
+      expr: avg without (instance, path)(instance:request_latency_seconds_count:rate5m{job="traefik"})
