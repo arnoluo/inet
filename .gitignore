@@ -4,3 +4,4 @@
 conf/nginx/conf.d/*.conf
 conf/alertmanager/alertmanager.yml
 docker-compose.yml
+storage/acme.json
