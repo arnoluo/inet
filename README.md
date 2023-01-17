@@ -1,5 +1,5 @@
 # inet
-internal network
+**inet(internal network)**, 基于 `docker compose`, `traefik` 构建的单节点单域名多服务docker环境，用于本地开发及单服务器环境部署。
 
 ## 前置安装
 ### 安装 [docker](https://docker.com)
